@@ -26,9 +26,16 @@ on:
     types: [ published ]
 
 jobs:
+  lint:
+    name: Lint project
+    uses: ${{ github.repository }}/.github/workflows/lint.yml@main
+
+
   build-package:
     name: Build Cryptonite
     runs-on: ubuntu-latest
+    needs: lint
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
