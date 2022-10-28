@@ -11,7 +11,10 @@ import os
 import sys
 from typing import Union
 
-from importlib.metadata import version
+try:
+    from importlib.metadata import version
+except ModuleNotFoundError:
+    from importlib_metadata import version
 
 from . import decrypt, encrypt
 import numpy as np
