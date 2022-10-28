@@ -4,20 +4,7 @@
 name: Lint project
 
 on:
-  push:
-    branches: [ main, cryptonite-ci ]
-    paths:
-      - ".github/workflows/lint.yml"
-      - "cryptonite/**"
-      - "pyproject.toml"
-      - "setup.py"
-
-  pull_request:
-    paths:
-      - ".github/workflows/lint.yml"
-      - "cryptonite/**"
-      - "pyproject.toml"
-      - "setup.py"
+  workflow_call:
 
 jobs:
   check-formatting:
@@ -55,4 +42,8 @@ jobs:
         run: pip3 install -r requirements.txt
 
       - name: Run PyLint
-        run: pylint cryptonite/
+        run: |
+          warnings="$(pylint --py-version='3.7' --exit-zero cryptonite/ --fail-under 8)"
+          if [ -n "$warnings" ]; then
+            printf '::warning::PyLint found the following issues:\n%s\n' "$warnings" >> $GITHUB_OUTPUT
+          fi
