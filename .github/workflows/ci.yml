@@ -1,0 +1,250 @@
+# Copyright (C) 2022 Roberto Rossini (roberros@uio.no)
+# SPDX-License-Identifier: MIT
+
+name: Build, test and publish Cryptonite
+
+on:
+  push:
+    branches: [ main, cryptonite-ci ]
+    paths:
+      - ".github/workflows/ci.yml"
+      - "cryptonite/**"
+      - "pyproject.toml"
+      - "setup.py"
+
+    tags:
+      - 'v*.*.*'
+
+  pull_request:
+    paths:
+      - ".github/workflows/ci.yml"
+      - "cryptonite/**"
+      - "pyproject.toml"
+      - "setup.py"
+
+  release:
+    types: [ published ]
+
+jobs:
+  build-package:
+    name: Build Cryptonite
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+          # Enable caching of pip packages so that they will be downloaded
+          # from PyPI only once
+          cache-dependency-path: "pyproject.toml"
+          cache: "pip"
+
+      - name: Install build dependencies
+        run: python3 -m pip install --upgrade pip build
+
+      - name: Build package
+        run: python3 -m build . --outdir pkg/
+
+      - name: TAR package
+        run: |
+          cp pyproject.toml pkg/
+          tar -cJf cryptonite-pkg.tar.xz pkg/
+      # This step is only needed to preserve file and folder permissions
+
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: cryptonite-pkg
+          path: cryptonite-pkg.tar.xz
+          if-no-files-found: error
+          retention-days: 3
+
+  unit-test:
+    name: Run unit tests
+    needs: build-package
+    strategy:
+      # Test package on Ubuntu and macOS using Python 3.8-10
+      matrix:
+        os: ["ubuntu-latest", "macos-latest"]
+        python-version: ["3.8", "3.9", "3.10", "3.11"]
+      fail-fast: false
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Download package artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: cryptonite-pkg
+
+      - name: Extract Package
+        run: tar -xf cryptonite-pkg.tar.xz
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache-dependency-path: "pkg/pyproject.toml"
+          cache: "pip"
+
+      - name: Create Python virtualenv
+        run: python3 -m venv ./venv --upgrade
+
+      - name: Install Cryptonite
+        run: venv/bin/python3 -m pip install pkg/*cryptonite*.whl
+
+      - name: Install test dependencies
+        run: venv/bin/python3 -m pip install '.[test]'
+
+      - name: Run unit tests
+        run: venv/bin/python3 -m pytest
+
+  integration-test:
+    name: Run integration tests
+    needs: build-package
+    strategy:
+      matrix:
+        os: ["ubuntu-latest", "macos-latest"]
+        python-version: ["3.8", "3.9", "3.10", "3.11"]
+      fail-fast: false
+
+    runs-on: ${{ matrix.os }}
+    env:
+      TEST_DATASET_URL: 'https://hgdownload.soe.ucsc.edu/goldenPath/hg38/bigZips/genes/hg38.refGene.gtf.gz'
+
+    steps:
+      - name: Download package artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: cryptonite-pkg
+
+      - name: Extract Package
+        run: tar -xf cryptonite-pkg.tar.xz
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache-dependency-path: "pkg/pyproject.toml"
+          cache: "pip"
+
+      - name: Cache test dataset
+        id: cache-test-dataset
+        uses: actions/cache@v3
+        with:
+          # Note that the cache key only depends on the dataset URL.
+          # This means that all jobs in the matrix will use the same cache.
+          key: "test-dataset-${{ env.TEST_DATASET_URL }}"
+          path: ${{ github.workspace }}/test_dataset.txt
+
+      - name: Download test dataset
+        if: steps.cache-test-dataset.outputs.cache-hit != 'true'
+        run: curl -L "$TEST_DATASET_URL" | gzip -dc > test_dataset.txt
+
+      - name: Create Python virtualenv
+        run: python3 -m venv ./venv --upgrade
+
+      - name: Install Cryptonite
+        run: venv/bin/python3 -m pip install pkg/*cryptonite*.whl
+
+      - name: Run integration test
+        env:
+          CRYPTONITE_KEY: 18
+        run: |
+          # Encrypt dataset
+          venv/bin/cryptonite encrypt --no-validate < test_dataset.txt > test_dataset.encrypted
+          
+          # Decrypt dataset
+          venv/bin/cryptonite decrypt --no-validate < test_dataset.encrypted > test_dataset.plain
+          
+          # Compare decrypted dataset with the original file
+          if diff -s -q test_dataset.plain test_dataset.txt; then
+            2>&1 echo '### PASS! ###'
+          else
+            2>&1 echo '### FAIL! ###'
+            exit 1
+          fi
+
+  publish-package:
+    name: Publish Cryptonite on test.pypi
+    runs-on: ubuntu-latest
+
+    # Only publish Cryptonite on test.pypi if both test jobs pass and if the workflow
+    # was triggered by a release event
+    needs: [unit-test, integration-test]
+    if: github.event_name == 'release'
+
+    steps:
+      - name: Download package artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: cryptonite-pkg
+
+      - name: Extract Package
+        run: tar -xf cryptonite-pkg.tar.xz
+
+      - name: Generate requirements.txt
+        # Twine is one of the packages that can be used to upload packages to PyPI
+        run: echo 'twine>=4' > requirements.txt
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+          cache-dependency-path: "requirements.txt"
+          cache: "pip"
+
+      - name: Install twine
+        run: python3 -m pip install -r requirements.txt
+
+      - name: Upload package to test.pypi
+        env:
+          TWINE_USERNAME: ${{ secrets.TESTPYPI_USERNAME }}
+          TWINE_PASSWORD: ${{ secrets.TESTPYPI_PASSWORD }}
+        run: python3 -m twine upload --repository testpypi pkg/*.{whl,tar.gz}
+
+  download-package:
+    name: Download Cryptonite from test.pypi
+    needs: publish-package
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release'
+
+    steps:
+      - name: Get release tag
+        id: get-tag
+        run: |
+          tag="${{ github.event.release.tag_name }}"
+          echo "tag=${tag#v}" >> $GITHUB_OUTPUT
+
+      - name: Download Cryptonite from PyPI
+        run: |
+          python3 -m pip install \
+            --extra-index-url https://test.pypi.org/simple/ \
+            "2022-sbi-ci-workflow-cryptonite==${{ steps.get-tag.outputs.tag }}"
+
+      - name: Check Cryptonite version
+        run: cryptonite --version
+
+      - name: Test Cryptonite encryption roundtrip
+        env:
+          CRYPTONITE_KEY: 10
+        run: |
+          msg='Super duper secret message'
+          
+          echo "$msg"          |
+            cryptonite encrypt |
+            cryptonite decrypt > msg.txt
+          
+          if grep -q "$msg" msg.txt; then
+            2>&1 echo '### PASS! ###'
+            exit 0
+          else
+            2>&1 echo '### FAIL! ###'
+            exit 1
+          fi

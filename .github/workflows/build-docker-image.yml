@@ -1,0 +1,95 @@
+# Copyright (C) 2022 Roberto Rossini (roberros@uio.no)
+# SPDX-License-Identifier: MIT
+
+name: Build Docker image
+
+on:
+  push:
+    branches: [ main, cryptonite-ci ]
+    paths:
+      - ".github/workflows/build-docker-image.yml"
+      - "cryptonite/**"
+      - "Dockerfile"
+      - "pyproject.toml"
+      - "setup.py"
+
+    tags:
+      - 'v*.*.*'
+
+  pull_request:
+    paths:
+      - ".github/workflows/build-docker-image.yml"
+      - "cryptonite/**"
+      - "Dockerfile"
+      - "pyproject.toml"
+      - "setup.py"
+
+jobs:
+  build-dockerfile:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Collect project metadata
+        # Use an action to collect metadata for docker build
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ghcr.io/${{ github.repository }}/cryptonite
+          flavor: latest=true
+          tags: |
+            type=pep440,priority=1000,pattern={{version}}
+            type=sha,priority=900
+            type=ref,priority=800,event=branch
+            type=ref,priority=700,event=pr
+
+      # Login to the container registry on GitHub so that final Docker image
+      # (as well as intermediate layers) can be uploaded to the registry
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build Docker image and push to registries
+        uses: docker/build-push-action@v3
+        with:
+          push: ${{ github.event_name != 'pull_request' }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: BUILDKIT_CONTEXT_KEEP_GIT_DIR=true
+
+  test-docker-image:
+    needs: build-dockerfile
+    runs-on: ubuntu-latest
+
+    container:
+      image: ghcr.io/${{ github.repository }}/cryptonite:latest
+      options: '--entrypoint /bin/bash'
+
+    steps:
+      - name: Test image
+        run: |
+          # Write message to file
+          echo "Super-secret message" > message.txt
+          
+          # Encrypt the message
+          cryptonite encrypt --key 17 < message.txt > message.encrypted
+          
+          # Decrypt message
+          cryptonite decrypt --key 17 < message.encrypted > message.decrypted
+          
+          # Compare original and decrypted message
+          if diff -s -q message.txt message.decrypted; then
+            2>&1 echo '### PASS! ###'
+          else
+            2>&1 echo '### FAIL! ###'
+            exit 1
+          fi
