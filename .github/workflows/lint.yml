@@ -7,23 +7,47 @@ on:
   workflow_call:
 
 jobs:
-  lint-project:
-    name: Lint project Black, isort and PyLint
+  check-formatting:
+    name: Check project formatting with Black
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Lint Code Base
-        uses: github/super-linter@latest
-        env:
-          DEFAULT_BRANCH: main
+      # Ensure project follows black code style
+      - uses: psf/black@stable
+        with:
+         options: "--check --verbose --diff --color"
 
-          VALIDATE_PYTHON: true
-          VALIDATE_PYTHON_FLAKE8: false
-          VALIDATE_PYTHON_MYPY: false
+  run-pylint:
+    name: Lint project with PyLint
+    runs-on: ubuntu-latest
 
-          LINTER_RULES_PATH: /
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+          cache-dependency-path: "pyproject.toml"
+          cache: "pip"
+
+      - name: Install devel deps
+        run: pip3 install .[devel]
+
+      - name: Run PyLint
+        run: |
+          # Run pylint and
+          warnings="$(pylint --py-version='3.7' --exit-zero cryptonite/ --score=n 2>&1)"
+          
+          if [ -n "$warnings" ]; then
+            # Escape new-lines, see: https://github.com/orgs/community/discussions/26288#discussioncomment-3251220
+            warnings="${warnings//'%'/'%25'}"
+            warnings="${warnings//$'\n'/'%0A'}"
+            warnings="${warnings//$'\r'/'%0D'}"
+          
+            echo "::warning file=cryptonite, line=1, title=PyLint::$warnings"
+          fi

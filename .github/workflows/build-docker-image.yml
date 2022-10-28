@@ -8,6 +8,7 @@ on:
     branches: [ main, cryptonite-ci ]
     paths:
       - ".github/workflows/build-docker-image.yml"
+      - ".github/workflows/lint.yml"
       - "cryptonite/**"
       - "Dockerfile"
       - "pyproject.toml"
@@ -19,6 +20,7 @@ on:
   pull_request:
     paths:
       - ".github/workflows/build-docker-image.yml"
+      - ".github/workflows/lint.yml"
       - "cryptonite/**"
       - "Dockerfile"
       - "pyproject.toml"
