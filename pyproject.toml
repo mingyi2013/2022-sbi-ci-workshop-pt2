@@ -35,8 +35,9 @@ dynamic = ["version"]
 [project.optional-dependencies]
 test = ["pytest>=5.3"]
 devel = [
-    "autopep8",
-    "pep8"
+    "black>=22",
+    "pep8",
+    "pylint>=2.6"
 ]
 all = [
     "2022-sbi-ci-workflow-cryptonite[test]",
@@ -56,3 +57,10 @@ exclude = ["cryptonite.tests*"]
 [tool.black]
 line-length = 120
 target-version = ["py37"]
+
+[tool.pylint.messages_control]
+max-line-length = 120
+disable = [
+    "missing-module-docstring",
+    "missing-function-docstring"
+]
