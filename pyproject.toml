@@ -36,6 +36,7 @@ dynamic = ["version"]
 test = ["pytest>=5.3"]
 devel = [
     "black>=22",
+    "isort>=5.10",
     "pep8",
     "pylint>=2.6"
 ]
@@ -58,9 +59,13 @@ exclude = ["cryptonite.tests*"]
 line-length = 120
 target-version = ["py37"]
 
+[tool.isort]
+profile = "black"
+
 [tool.pylint.messages_control]
 max-line-length = 120
 disable = [
+    # "invalid-name",
     "missing-module-docstring",
     "missing-function-docstring"
 ]
