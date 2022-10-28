@@ -28,7 +28,7 @@ on:
 jobs:
   lint:
     name: Lint project
-    uses: ${{ github.repository }}/.github/workflows/lint.yml@main
+    uses: ./.github/workflows/lint.yml
 
 
   build-package:

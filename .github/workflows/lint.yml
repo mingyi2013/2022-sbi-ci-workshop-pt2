@@ -29,7 +29,15 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Generate requirements.txt
-        run: echo 'pylint>=2.6' > requirements.txt
+        run: |
+          echo 'pylint>=2.6' > requirements.txt
+          
+          # Append Cryptonate deps to requirements.txt
+          ./setup.py egg_info
+          cat *.egg-info/requires.txt >> requirements.txt
+          
+          rm -r *.egg-info/
+          
 
       - name: Setup Python
         uses: actions/setup-python@v4
@@ -39,11 +47,17 @@ jobs:
           cache: "pip"
 
       - name: Install PyLint
-        run: pip3 install -r requirements.txt
+        run: pip3 install -r
 
       - name: Run PyLint
         run: |
-          warnings="$(pylint --py-version='3.7' --exit-zero cryptonite/ --fail-under 8)"
+          warnings="$(pylint --py-version='3.7' --exit-zero cryptonite/ --score=n 2>&1)"
+          
           if [ -n "$warnings" ]; then
-            printf '::warning::PyLint found the following issues:\n%s\n' "$warnings" >> $GITHUB_OUTPUT
+            # Escape new-lines, see: https://github.com/orgs/community/discussions/26288#discussioncomment-3251220
+            warnings="${warnings//'%'/'%25'}"
+            warnings="${warnings//$'\n'/'%0A'}"
+            warnings="${warnings//$'\r'/'%0D'}"
+          
+            echo "::warning file=cryptonite, line=1, title=PyLint::$warnings"
           fi
