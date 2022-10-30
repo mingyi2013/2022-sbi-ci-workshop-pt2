@@ -63,9 +63,10 @@ target-version = ["py37"]
 profile = "black"
 
 [tool.pylint.messages_control]
-max-line-length = 120
 disable = [
-    # "invalid-name",
     "missing-module-docstring",
     "missing-function-docstring"
 ]
+ignore = ["_version.py"]
+max-line-length = 120
+py-version = "3.7"
