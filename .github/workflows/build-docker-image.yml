@@ -83,11 +83,14 @@ jobs:
       options: '--entrypoint /bin/bash'
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
       - name: Test image
         run: |
           echo 'Super duper secret message' > test.txt
           
           scripts/test/integration_test.sh \
-            venv/bin/cryptonite \
+            cryptonite \
             test.txt \
             17
