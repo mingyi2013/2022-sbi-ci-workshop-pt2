@@ -1,0 +1,79 @@
+# Copyright (C) 2022 Roberto Rossini (roberros@uio.no)
+# SPDX-License-Identifier: MIT
+
+name: Package Cryptonite
+
+on:
+  workflow_call:
+    inputs:
+      os:
+        description: OS to use for packaging
+        default: 'ubuntu-latest'
+        required: false
+        type: string
+      python-version:
+        description: Python version to use for packaging
+        default: '3.11'
+        required: false
+        type: string
+
+    outputs:
+      pkg-artifact:
+        description: Name of the package artifact created by this workflow
+        value: ${{ jobs.tar-package.outputs.name }}
+
+jobs:
+  create-package:
+    name: Package Cryptonite
+    runs-on: ${{ inputs.os }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Get commit date
+        id: get-commit-date
+        run: |
+          commit_date="$(git show -s --format='%ad' --date=short "$GITHUB_REF" | tr -d '-')"
+          echo "date=$commit_date" >> $GITHUB_OUTPUT
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ inputs.python-version }}
+          # Enable caching of pip packages so that they will be downloaded
+          # from PyPI only once
+          cache-dependency-path: "pyproject.toml"
+          cache: "pip"
+
+      - name: Install build dependencies
+        run: python3 -m pip install --upgrade pip build
+
+      - name: Build package
+        run: python3 -m build . --outdir pkg/
+
+      - name: Generate requirements.txt
+        run: |
+          ./setup.py egg_info
+          mv *egg-info/requires.txt requirements.txt
+          rm -r *egg-info
+          
+          cp requirements.txt pkg/
+
+      - name: TAR package
+        id: tar-package
+        run: |
+          archive_prefix="cryptonite-${{ steps.get-commit-date.outputs.date }}"
+          
+          mv pkg/ "$archive_prefix/"
+          tar -cJf "$archive_prefix.tar.xz" "$archive_prefix/"
+          
+          echo "name=$archive_prefix" >> $GITHUB_OUTPUT
+
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ steps.tar-package.outputs.name }}
+          path: ${{ steps.tar-package.outputs.name }}.tar.xz
+          if-no-files-found: error
+          retention-days: 3

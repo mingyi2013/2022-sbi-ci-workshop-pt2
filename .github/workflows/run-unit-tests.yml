@@ -1,0 +1,58 @@
+# Copyright (C) 2022 Roberto Rossini (roberros@uio.no)
+# SPDX-License-Identifier: MIT
+
+name: Run unit tests
+
+on:
+  workflow_call:
+    inputs:
+      os:
+        description: OS to use for testing
+        required: true
+        type: string
+      python-version:
+        description: Python version to use for testing
+        required: true
+        type: string
+      pkg-artifact:
+        description: Name of the package artifact
+        required: true
+        type: string
+
+jobs:
+  run-unit-test:
+    name: Run unit tests
+    runs-on: ${{ inputs.os }}
+
+    steps:
+      - name: Download package artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ inputs.pkg-artifact }}
+
+      - name: Extract Package
+        run: tar -xf */*.tar.xz
+
+      - name: Generate requirements.txt
+        run: |
+          # Only keep lines starting with pytest
+          awk '/^pytest/{ print $0 }' */requirements.txt > requirements.txt
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ inputs.python-version }}
+          cache-dependency-path: "requirements.txt"
+          cache: "pip"
+
+      - name: Create Python virtualenv
+        run: python3 -m venv ./venv --upgrade
+
+      - name: Install Cryptonite
+        run: venv/bin/python3 -m pip install cryptonite*/*cryptonite*.whl
+
+      - name: Install test dependencies
+        run: venv/bin/python3 -m pip install -r requirements.txt
+
+      - name: Run unit tests
+        run: venv/bin/pytest --pyargs cryptonite.test

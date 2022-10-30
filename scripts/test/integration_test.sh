@@ -42,7 +42,7 @@ function test_cryptonite_roundtrip {
     diff --brief \
          --report-identical-files \
          "$file" \
-         <("$cryptonite" encrypt < "$file" | "$cryptonite" decrypt)
+         <("$cryptonite" encrypt --no-validate-input < "$file" | "$cryptonite" decrypt --no-validate-input)
 }
 
 

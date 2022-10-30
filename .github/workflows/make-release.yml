@@ -1,0 +1,73 @@
+# Copyright (C) 2022 Roberto Rossini (roberros@uio.no)
+# SPDX-License-Identifier: MIT
+
+name: Publish Cryptonite on test.pypi
+
+on:
+  workflow_call:
+    inputs:
+      pkg-artifact:
+        description: Name of the artifact with the package to be released
+        required: true
+        type: string
+      release-tag:
+        description: Git tag of the package to be released
+        required: true
+        type: string
+
+jobs:
+  publish-package:
+    name: Publish Cryptonite on test.pypi
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download package artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ inputs.pkg-artifact }}
+
+      - name: Extract Package
+        run: |
+          tar -xf *.tar.* --strip-components=1
+          rm requirements.txt
+
+      - name: Generate requirements.txt
+        # Twine is one of the packages that can be used to upload packages to PyPI
+        run: echo 'twine>=4' > requirements.txt
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+          cache-dependency-path: "requirements.txt"
+          cache: "pip"
+
+      - name: Install twine
+        run: python3 -m pip install -r requirements.txt
+
+      - name: Upload package to test.pypi
+        env:
+          TWINE_USERNAME: ${{ secrets.TESTPYPI_USERNAME }}
+          TWINE_PASSWORD: ${{ secrets.TESTPYPI_PASSWORD }}
+        run: python3 -m twine upload --repository testpypi *cryptonite*.{whl,tar.gz}
+
+  download-package:
+    name: Download Cryptonite from test.pypi
+    needs: publish-package
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: ["3.7", "3.8", "3.9", "3.10", "3.11", "3.12-rc"]
+      fail-fast: false
+
+    container: python:${{ matrix.python-version }}
+
+    steps:
+      - name: Download Cryptonite from PyPI
+        run: |
+          python3 -m pip install \
+            --extra-index-url https://test.pypi.org/simple/ \
+            "2022-sbi-ci-workflow-cryptonite==${{ inputs.release-tag }}"
+
+      - name: Check Cryptonite version
+        run: cryptonite --version
