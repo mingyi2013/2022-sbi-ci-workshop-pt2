@@ -163,22 +163,11 @@ jobs:
         run: venv/bin/python3 -m pip install pkg/*cryptonite*.whl
 
       - name: Run integration test
-        env:
-          CRYPTONITE_KEY: 18
         run: |
-          # Encrypt dataset
-          venv/bin/cryptonite encrypt --no-validate < test_dataset.txt > test_dataset.encrypted
-          
-          # Decrypt dataset
-          venv/bin/cryptonite decrypt --no-validate < test_dataset.encrypted > test_dataset.plain
-          
-          # Compare decrypted dataset with the original file
-          if diff -s -q test_dataset.plain test_dataset.txt; then
-            2>&1 echo '### PASS! ###'
-          else
-            2>&1 echo '### FAIL! ###'
-            exit 1
-          fi
+          scripts/test/integration_test.sh \
+            venv/bin/cryptonite \
+            test_dataset.txt \
+            18
 
   publish-package:
     name: Publish Cryptonite on test.pypi
@@ -241,19 +230,10 @@ jobs:
         run: cryptonite --version
 
       - name: Test Cryptonite encryption roundtrip
-        env:
-          CRYPTONITE_KEY: 10
         run: |
-          msg='Super duper secret message'
+          echo 'Super duper secret message' > test.txt
           
-          echo "$msg"          |
-            cryptonite encrypt |
-            cryptonite decrypt > msg.txt
-          
-          if grep -q "$msg" msg.txt; then
-            2>&1 echo '### PASS! ###'
-            exit 0
-          else
-            2>&1 echo '### FAIL! ###'
-            exit 1
-          fi
+          scripts/test/integration_test.sh \
+            venv/bin/cryptonite \
+            test.txt \
+            10

@@ -85,19 +85,9 @@ jobs:
     steps:
       - name: Test image
         run: |
-          # Write message to file
-          echo "Super-secret message" > message.txt
+          echo 'Super duper secret message' > test.txt
           
-          # Encrypt the message
-          cryptonite encrypt --key 17 < message.txt > message.encrypted
-          
-          # Decrypt message
-          cryptonite decrypt --key 17 < message.encrypted > message.decrypted
-          
-          # Compare original and decrypted message
-          if diff -s -q message.txt message.decrypted; then
-            2>&1 echo '### PASS! ###'
-          else
-            2>&1 echo '### FAIL! ###'
-            exit 1
-          fi
+          scripts/test/integration_test.sh \
+            venv/bin/cryptonite \
+            test.txt \
+            17
