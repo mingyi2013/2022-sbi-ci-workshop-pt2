@@ -24,9 +24,6 @@ on:
       - "pyproject.toml"
       - "setup.py"
 
-  release:
-    types: [ published ]
-
 jobs:
   lint:
     name: Lint project
@@ -65,12 +62,3 @@ jobs:
       os: ${{ matrix.os }}
       python-version: ${{ matrix.python-version }}
       pkg-artifact: ${{ needs.make-package.outputs.pkg-artifact }}
-
-  publish-package:
-    name: Publish package
-    needs: [make-package, run-unit-tests, run-integration-tests]
-    if: github.event_name == 'release'
-    uses: ./.github/workflows/make-release.yml
-    with:
-      pkg-artifact: ${{ needs.make-package.outputs.pkg-artifact }}
-      release-tag: ${{ needs.make-package.outputs.version }}
