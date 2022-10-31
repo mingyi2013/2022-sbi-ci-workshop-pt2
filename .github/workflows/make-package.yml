@@ -4,7 +4,10 @@
 name: Package Cryptonite
 
 on:
+  # Reusable workflow
   workflow_call:
+    # Define workflows input parameters
+    # The callee can pass parameters using the with: keyword
     inputs:
       os:
         description: OS to use for packaging
@@ -17,13 +20,13 @@ on:
         required: false
         type: string
 
+    # Define workflow outputs
     outputs:
       pkg-artifact:
         description: Name of the package artifact created by this workflow
         value: ${{ jobs.tar-package.outputs.name }}
-      version:
-        description: Package version
-        value: ${{ jobs.extract-version.outputs.version }}
+
+    # Note how the workflow output is set based on the output of job tar-package (defined below)
 
 jobs:
   create-package:
@@ -38,8 +41,7 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: ${{ inputs.python-version }}
-          # Enable caching of pip packages so that they will be downloaded
-          # from PyPI only once
+          # Enable caching of pip packages so that they will be downloaded from PyPI only once
           cache-dependency-path: pyproject.toml
           cache: pip
 
@@ -49,7 +51,7 @@ jobs:
       - name: Install build dependencies
         run: venv/bin/python3 -m pip install --upgrade pip '.[all]'
 
-      - name: Build package
+      - name: Create package
         run: |
           venv/bin/python3 -m build . --outdir pkg/
           
@@ -65,6 +67,8 @@ jobs:
           # Extract version 1.0.0
           ver="$(printf "%s" *.whl | cut -d $'-' -f2)"
           
+          # Define a step output named "version".
+          # Later steps can reference this output with ${{ steps.extract-version.outputs.version }}
           echo "version=$ver" >> $GITHUB_OUTPUT
 
       - name: TAR package
@@ -75,6 +79,7 @@ jobs:
           mv pkg/ "$archive_prefix/"
           tar -cJf "$archive_prefix.tar.xz" "$archive_prefix/"
           
+          # This output can be accessed through the ${{ steps.tar-package.outputs.name }} variable
           echo "name=$archive_prefix" >> $GITHUB_OUTPUT
 
       - name: Upload package artifact

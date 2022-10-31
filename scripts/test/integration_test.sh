@@ -7,6 +7,10 @@ set -u
 set -e
 set -o pipefail
 
+# This script automates the following steps:
+# - Encrypt the file passed as second argument using the key passed as third argument
+# - Decrypt the encrypted file using the same key
+# - Check that the original file and the decrypted file are identical
 
 # Make sure the script is being called with the correct number of arguments
 ARGC=$#

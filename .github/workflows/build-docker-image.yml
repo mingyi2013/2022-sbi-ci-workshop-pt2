@@ -44,8 +44,12 @@ jobs:
         id: meta
         uses: docker/metadata-action@v4
         with:
+          # Upload image to GHCR.io instead of DockerHub
           images: ghcr.io/${{ github.repository }}/cryptonite
+
           flavor: latest=true
+
+          # Define tags with acending priorities
           tags: |
             type=pep440,priority=1000,pattern={{version}}
             type=sha,priority=900
@@ -53,11 +57,11 @@ jobs:
             type=ref,priority=700,event=pr
 
       # Login to the container registry on GitHub so that final Docker image
-      # (as well as intermediate layers) can be uploaded to the registry
+      # can be uploaded to the registry
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v2
         with:
-          registry: ghcr.io
+          registry: ghcr.io  # Omit this to log to DockerHub
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
