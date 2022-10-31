@@ -77,16 +77,19 @@ jobs:
           workflow_conclusion: success
           name: cryptonite-${{ github.ref_name }}
 
-      - name: Compute package digests
+      - name: Prepare release archive
         run: |
-          shasum -a256 "cryptonite-${{ github.ref_name }}.tar.xz" > "cryptonite-${{ github.ref_name }}.tar.xz.sha256"
+          tar -xf "cryptonite-${{ github.ref_name }}.tar.xz"
+          rm "cryptonite-${{ github.ref_name }}/pyproject.toml"
+          
+          (cd "cryptonite-${{ github.ref_name }}" && shasum -a256 * > checksums.sha256)
+          
+          tar -cJf "cryptonite-${{ github.ref_name }}.tar.xz" "cryptonite-${{ github.ref_name }}/"
 
       - name: Upload release artifact
         uses: actions/upload-artifact@v3
         with:
           name: cryptonite-${{ github.ref_name }}-release
-          path: |
-            cryptonite-${{ github.ref_name }}.tar.xz
-            cryptonite-${{ github.ref_name }}.tar.xz.sha256
+          path: cryptonite-${{ github.ref_name }}.tar.xz
           if-no-files-found: error
           retention-days: 90
