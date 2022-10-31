@@ -61,3 +61,20 @@ Example: the `make-package.yml` and `run-*-tests.yml` workflows are called by `c
 ## Exercise guidelines
 
 There are no exercises for this session, but feel free to clone, fork or use this repo as template if you prefer to follow along the examples using your laptop.
+
+Before running the [CD workflow](https://github.com/robomics/2022-sbi-ci-workshop-pt2/blob/main/.github/workflows/cd.yml) make sure to do the following steps (otherwise the workflow will fail):
+- Open an account on [test.pypi](https://test.pypi.org/) and [create an API token](https://test.pypi.org/help/#apitoken).
+- Add the following secrets to your GitHub repository ([docs](https://docs.github.com/en/actions/security-guides/encrypted-secrets#creating-encrypted-secrets-for-a-repository)):
+    - `TESTPIPY_USERNAME` with value `__token__`
+    - `TESTPIPY_PASSWORD` with value equal to the test.pypi API token created in the previous step (including the `pypi-` prefix)
+- Edit the `pyproject.toml` and replace all instances of `2022-sbi-ci-workflow-cryptonite` with e.g. `2022-sbi-ci-workflow-cryptonite-myusername`.
+
+Head over to the [release page](https://github.com/robomics/2022-sbi-ci-workshop-pt2/releases/tag/v0.0.2) on GitHub
+or to the package on [test.pypi](https://test.pypi.org/project/2022-sbi-ci-workflow-cryptonite/)
+to see the result produced by a successful run of the [CD workflow](https://github.com/robomics/2022-sbi-ci-workshop-pt2/blob/main/.github/workflows/cd.yml).
+
+#### Closing notes:
+
+- The [CD workflow](https://github.com/robomics/2022-sbi-ci-workshop-pt2/blob/main/.github/workflows/cd.yml) can be triggered by publishing a release on GitHub.
+- In this case the [release description](https://github.com/robomics/2022-sbi-ci-workshop-pt2/releases/tag/v0.0.2) was generated manually
+- The entire process of creating a release, as well as uploading release assets can be automated by modifying/extending the [CD workflow](https://github.com/robomics/2022-sbi-ci-workshop-pt2/blob/main/.github/workflows/cd.yml).
