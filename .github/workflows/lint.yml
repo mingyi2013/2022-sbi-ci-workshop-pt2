@@ -40,19 +40,4 @@ jobs:
         run: pip3 install '.[devel]'
 
       - name: Run PyLint
-        run: |
-          # Run pylint and capture its stdout
-          warnings="$(pylint --py-version='3.7' --exit-zero cryptonite/ --score=n 2>&1)"
-          
-          # If pylint produced some output, then issue a warning
-          if [ -n "$warnings" ]; then
-            # Escape problematic characters
-            # see: https://github.com/orgs/community/discussions/26288#discussioncomment-3251220
-            
-            warnings="${warnings//'%'/'%25'}"
-            warnings="${warnings//$'\n'/'%0A'}"
-            warnings="${warnings//$'\r'/'%0D'}"
-          
-            # Issue a warning containing PyLint output
-            echo "::warning file=cryptonite, line=1, title=PyLint::$warnings"
-          fi
+        run: pylint cryptonite/
