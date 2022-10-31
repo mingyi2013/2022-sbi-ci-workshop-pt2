@@ -36,6 +36,7 @@ dynamic = ["version"]
 test = ["pytest>=5.3"]
 devel = [
     "black>=22",
+    "build",
     "isort>=5.10",
     "pep8",
     "pylint>=2.6"
@@ -53,7 +54,7 @@ write_to = "cryptonite/_version.py"
 
 [tool.setuptools.packages.find]
 include = ["cryptonite*"]
-exclude = ["cryptonite.tests*"]
+exclude = ["cryptonite.test*"]
 
 [tool.black]
 line-length = 120
