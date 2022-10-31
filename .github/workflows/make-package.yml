@@ -70,7 +70,7 @@ jobs:
       - name: TAR package
         id: tar-package
         run: |
-          archive_prefix="cryptonite-${{ steps.extract-version.outputs.version }}"
+          archive_prefix="cryptonite-v${{ steps.extract-version.outputs.version }}"
           
           mv pkg/ "$archive_prefix/"
           tar -cJf "$archive_prefix.tar.xz" "$archive_prefix/"

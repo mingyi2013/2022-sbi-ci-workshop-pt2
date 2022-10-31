@@ -13,12 +13,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download package artifact
-        uses: actions/download-artifact@v3
+        uses: dawidd6/action-download-artifact@v2
         with:
+          workflow: ci.yml
+          workflow_conclusion: success
           name: cryptonite-${{ github.ref_name }}
 
       - name: Extract package
-        run: tar -xf cryptonite-*/cryptonite-*.tar.xz --strip-components=1
+        run: tar -xf cryptonite-*.tar.xz --strip-components=1
 
       - name: Generate requirements.txt
         # Twine is one of the packages that can be used to upload packages to PyPI
@@ -69,8 +71,10 @@ jobs:
 
     steps:
       - name: Download package artifact
-        uses: actions/download-artifact@v3
+        uses: dawidd6/action-download-artifact@v2
         with:
+          workflow: ci.yml
+          workflow_conclusion: success
           name: cryptonite-${{ github.ref_name }}
 
       - name: Compute package digests
@@ -80,7 +84,7 @@ jobs:
       - name: Upload release artifact
         uses: actions/upload-artifact@v3
         with:
-          name: cryptonite-${{ github.ref_name }}
+          name: cryptonite-${{ github.ref_name }}-release
           path: |
             cryptonite-${{ github.ref_name }}.tar.xz
             cryptonite-${{ github.ref_name }}.tar.xz.sha256
