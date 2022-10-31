@@ -63,6 +63,8 @@ jobs:
     steps:
       - name: Download Cryptonite from PyPI
         run: |
+          sleep 5
+          
           python3 -m pip install \
             --extra-index-url https://test.pypi.org/simple/ \
             "2022-sbi-ci-workflow-cryptonite==${{ github.ref_name }}"
