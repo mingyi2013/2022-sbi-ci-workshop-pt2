@@ -2,10 +2,12 @@
 #
 # SPDX-License-Identifier: MIT
 
+from typing import Union
+
+import numpy as np
+
 from cryptonite.encrypt import encrypt
 from cryptonite.utils import is_ascii
-from typing import Union
-import numpy as np
 
 
 def decrypt(text: Union[str, np.ndarray], offset: int, validate: bool = True) -> str:

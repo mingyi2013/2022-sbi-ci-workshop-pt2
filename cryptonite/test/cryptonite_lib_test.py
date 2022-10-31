@@ -2,9 +2,10 @@
 #
 # SPDX-License-Identifier: MIT
 
+import numpy as np
+
 from cryptonite.decrypt import decrypt
 from cryptonite.encrypt import encrypt
-import numpy as np
 
 
 def test_encrypt():

@@ -16,8 +16,9 @@ try:
 except ModuleNotFoundError:
     from importlib_metadata import version
 
-from . import decrypt, encrypt
 import numpy as np
+
+from . import decrypt, encrypt
 
 
 def read_key_from_env() -> Union[str, None]:

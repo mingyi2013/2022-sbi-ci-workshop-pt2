@@ -1,13 +1,15 @@
 # Copyright (C) 2022 Roberto Rossini <roberros@uio.no>
 #
 # SPDX-License-Identifier: MIT
-from cryptonite.utils import is_ascii
 from typing import Union
+
 import numpy as np
 
+from cryptonite.utils import is_ascii
 
-def __encrypt_char(c: str, offset: int, num_ascii_chars: int = 127):
-    return chr(abs((ord(c) + offset) % num_ascii_chars))
+
+def __encrypt_char(char: str, offset: int, num_ascii_chars: int = 127):
+    return chr(abs((ord(char) + offset) % num_ascii_chars))
 
 
 def __encrypt_np_array(text: np.ndarray, offset: int, num_ascii_chars: int = 127):
