@@ -38,6 +38,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - name: Collect project metadata
         # Use an action to collect metadata for docker build
@@ -76,7 +78,7 @@ jobs:
           cache-to: type=gha,mode=max
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          build-args: BUILDKIT_CONTEXT_KEEP_GIT_DIR=true
+          build-args: BUILDKIT_CONTEXT_KEEP_GIT_DIR=1
 
   test-docker-image:
     needs: build-dockerfile
