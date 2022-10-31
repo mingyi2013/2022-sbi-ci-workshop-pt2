@@ -30,29 +30,27 @@ jobs:
         with:
           name: ${{ inputs.pkg-artifact }}
 
-      - name: Extract Package
-        run: tar -xf */*.tar.xz
-
-      - name: Generate requirements.txt
-        run: |
-          # Only keep lines starting with pytest
-          awk '/^pytest/{ print $0 }' */requirements.txt > requirements.txt
+      - name: Extract package
+        run: tar -xf cryptonite-*/cryptonite-*.tar.xz --strip-components=1
 
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: ${{ inputs.python-version }}
-          cache-dependency-path: "requirements.txt"
-          cache: "pip"
+          cache-dependency-path: pyproject.toml
+          cache: pip
 
       - name: Create Python virtualenv
         run: python3 -m venv ./venv --upgrade
 
       - name: Install Cryptonite
-        run: venv/bin/python3 -m pip install cryptonite*/*cryptonite*.whl
+        run: venv/bin/python3 -m pip install *cryptonite*.whl
 
       - name: Install test dependencies
-        run: venv/bin/python3 -m pip install -r requirements.txt
+        run: |
+          grep -o '"pytest.*"' pyproject.toml | tr -d '"' > requirements.txt
+          
+          venv/bin/python3 -m pip install -r requirements.txt
 
       - name: Run unit tests
         run: venv/bin/pytest --pyargs cryptonite.test

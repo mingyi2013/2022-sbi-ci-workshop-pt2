@@ -25,10 +25,8 @@ jobs:
         with:
           name: ${{ inputs.pkg-artifact }}
 
-      - name: Extract Package
-        run: |
-          tar -xf *.tar.* --strip-components=1
-          rm requirements.txt
+      - name: Extract package
+        run: tar -xf cryptonite-*/cryptonite-*.tar.xz --strip-components=1
 
       - name: Generate requirements.txt
         # Twine is one of the packages that can be used to upload packages to PyPI
@@ -38,8 +36,8 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: "3.11"
-          cache-dependency-path: "requirements.txt"
-          cache: "pip"
+          cache-dependency-path: requirements.txt
+          cache: pip
 
       - name: Install twine
         run: python3 -m pip install -r requirements.txt

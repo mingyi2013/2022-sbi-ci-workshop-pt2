@@ -28,25 +28,16 @@ jobs:
       TEST_DATASET_URL: 'https://hgdownload.soe.ucsc.edu/goldenPath/hg38/bigZips/genes/hg38.refGene.gtf.gz'
 
     steps:
+
       - name: Checkout repository
         uses: actions/checkout@v3
-
-      - name: Download package artifact
-        uses: actions/download-artifact@v3
         with:
-          name: ${{ inputs.pkg-artifact }}
+          path: repo
 
-      - name: Extract Package
+      - name: Copy test script
         run: |
-          tar -xf */*.tar.xz
-          mv */requirements.txt .
-
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ inputs.python-version }}
-          cache-dependency-path: requirements.txt
-          cache: "pip"
+          mv repo/scripts/test/integration_test.sh .
+          rm -rf repo/
 
       - name: Cache test dataset
         id: cache-test-dataset
@@ -61,15 +52,31 @@ jobs:
         if: steps.cache-test-dataset.outputs.cache-hit != 'true'
         run: curl -L "$TEST_DATASET_URL" | gzip -dc > test_dataset.txt
 
+
+      - name: Download package artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ inputs.pkg-artifact }}
+
+      - name: Extract package
+        run: tar -xf cryptonite-*/cryptonite-*.tar.xz --strip-components=1
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ inputs.python-version }}
+          cache-dependency-path: pyproject.toml
+          cache: pip
+
       - name: Create Python virtualenv
         run: python3 -m venv ./venv --upgrade
 
       - name: Install Cryptonite
-        run: venv/bin/python3 -m pip install */*cryptonite*.whl
+        run: venv/bin/python3 -m pip install *cryptonite*.whl
 
       - name: Run integration test
         run: |
-          scripts/test/integration_test.sh \
+          ./integration_test.sh \
             venv/bin/cryptonite \
-            test_dataset.txt \
+            test_dataset.txt    \
             18

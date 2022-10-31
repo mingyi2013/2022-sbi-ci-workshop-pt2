@@ -32,23 +32,6 @@ jobs:
     name: Lint project
     uses: ./.github/workflows/lint.yml
 
-  parse-release-tag:
-    name: Parse release tag
-    runs-on: ubuntu-latest
-    if: github.event_name == 'release'
-
-    outputs:
-      release-tag: ${{ steps.get-tag.outputs.tag }}
-
-    steps:
-      - name: Get release tag
-        id: get-tag
-        run: |
-          # Remove "v" from the tag name
-          # E.g. v1.2.3 -> 1.2.3
-          tag="${{ github.event.release.tag_name }}"
-          echo "release-tag=${tag#v}" >> $GITHUB_OUTPUT
-
   make-package:
     needs: lint
     uses: ./.github/workflows/make-package.yml
@@ -85,9 +68,9 @@ jobs:
 
   publish-package:
     name: Publish package
-    needs: [parse-release-tag, make-package, run-unit-tests, run-integration-tests]
+    needs: [make-package, run-unit-tests, run-integration-tests]
     if: github.event_name == 'release'
     uses: ./.github/workflows/make-release.yml
     with:
       pkg-artifact: ${{ needs.make-package.outputs.pkg-artifact }}
-      release-tag: ${{ needs.parse-release-tag.outputs.release-tag }}
+      release-tag: ${{ needs.make-package.outputs.version }}

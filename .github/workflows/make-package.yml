@@ -21,6 +21,9 @@ on:
       pkg-artifact:
         description: Name of the package artifact created by this workflow
         value: ${{ jobs.tar-package.outputs.name }}
+      version:
+        description: Package version
+        value: ${{ jobs.extract-version.outputs.version }}
 
 jobs:
   create-package:
@@ -31,39 +34,42 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Get commit date
-        id: get-commit-date
-        run: |
-          commit_date="$(git show -s --format='%ad' --date=short "$GITHUB_REF" | tr -d '-')"
-          echo "date=$commit_date" >> $GITHUB_OUTPUT
-
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: ${{ inputs.python-version }}
           # Enable caching of pip packages so that they will be downloaded
           # from PyPI only once
-          cache-dependency-path: "pyproject.toml"
-          cache: "pip"
+          cache-dependency-path: pyproject.toml
+          cache: pip
+
+      - name: Create Python virtualenv
+        run: python3 -m venv ./venv --upgrade
 
       - name: Install build dependencies
-        run: python3 -m pip install --upgrade pip build
+        run: venv/bin/python3 -m pip install --upgrade pip '.[all]'
 
       - name: Build package
-        run: python3 -m build . --outdir pkg/
-
-      - name: Generate requirements.txt
         run: |
-          ./setup.py egg_info
-          mv *egg-info/requires.txt requirements.txt
-          rm -r *egg-info
+          venv/bin/python3 -m build . --outdir pkg/
           
-          cp requirements.txt pkg/
+          cp pyproject.toml pkg/
+
+      - name: Extract version
+        id: extract-version
+        working-directory: pkg/
+        run: |
+          # Given a wheel named like:
+          # 2022_sbi_ci_workflow_cryptonite-1.0.0-py3-none-any.whl
+          # Extract version 1.0.0
+          ver="$(printf "%s" *.whl | cut -d $'-' -f2)"
+          
+          echo "version=$ver" >> $GITHUB_OUTPUT
 
       - name: TAR package
         id: tar-package
         run: |
-          archive_prefix="cryptonite-${{ steps.get-commit-date.outputs.date }}"
+          archive_prefix="cryptonite-${{ steps.extract-version.outputs.version }}"
           
           mv pkg/ "$archive_prefix/"
           tar -cJf "$archive_prefix.tar.xz" "$archive_prefix/"
